@@ -60,7 +60,9 @@ fi
 #set -xv
 cd $BACKUP_DIRECTORY
 
-if [[ $TYPE -eq 1 || $TYPE -eq 2 || $TYPE -eq 3 || $TYPE -eq 4 ]] ; then
+if [[ $HELP == true ]] ; then
+  echo "Script para hacer backups -f: full offline, -n: full online, -i: incremental, -d: delta."
+elif [[ $TYPE -eq 1 || $TYPE -eq 2 || $TYPE -eq 3 || $TYPE -eq 4 ]] ; then
   if [[ $TYPE -eq 1 ]] ; then
     db2 connect to $DATABASE
     db2 quiesce db immediate
