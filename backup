@@ -103,6 +103,7 @@ elif [[ $TYPE -eq 1 || $TYPE -eq 2 || $TYPE -eq 3 || $TYPE -eq 4 ]] ; then
         echo "Copiando backup a maquina de contingencia - $REMOTE_SERVER"
         scp $FILENAME $REMOTE_SERVER:$BACKUP_DIRECTORY
 
+        # Solo tiene en cuenta backups de la DB, y no de tablespaces. Razon por la que revisa que sea tipo 0.
         echo "Contando backups locales"
         QTY=$(ls -1 $BACKUP_DIRECTORY/$DATABASE.0.$INSTANCE* | wc -l)
         echo "Backup locales $QTY"
