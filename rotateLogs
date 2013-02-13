@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-# Llama al sistema de rotacion de logs y lo mueve al directorio old.
+# Llama al sistema de rotacion de logs y mueve logs pasados al directorio old.
 
 # Carga el ambiente de DB2
 if [ -f /home/db2inst1/sqllib/db2profile ]; then
@@ -14,6 +14,4 @@ DIAGPATH=`db2 get dbm cfg | awk '/\(DIAGPATH\)/ {print $7}'`
 
 cd $DIAGPATH
 
-LAST=`ls -1rt db2diag.log_* | tail -1`
-
-mv $LAST old
+mv db2diag.log_* old
