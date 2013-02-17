@@ -28,11 +28,11 @@ INSTANCE=db2inst1
 COMPRESS=compress
 
 # Pide los parametros
-TEMP=`getopt -o hnfdi --long help,online,offline,delta,incremental \
+TEMP=`getopt -o hnfdic: --long help,online,offline,delta,incremental,copy: \
              -n backup -- "$@"`
 
-if [[ $? -ne 0 ]] ; then
-  echo "Opcion invalida para el backup: -n | --online, -f | --offline, -i | --incremental, -d | --delta"
+if [[ $? -ne 0 || $# -eq 0 ]] ; then
+  echo "Opcion invalida para el backup: -n | --online, -f | --offline, -i | --incremental, -d | --delta, -m | --copy : timestamp"
   exit 1
 fi
 
@@ -41,8 +41,9 @@ eval set -- "$TEMP"
 
 HELP=false
 TYPE=0
-while true; do
+while [[ $# -gt 0 ]] ; do
   case "$1" in
+    -c | --copy ) TYPE=0 ; TIMESTAMP=`echo $2 | awk '{print $1}'` ; shift 2 ;;
     -f | --offline ) TYPE=1 ; shift ;;
     -n | --online ) TYPE=2 ; shift ;;
     -i | --incremental ) TYPE=3 ; shift ;;
@@ -61,9 +62,13 @@ fi
 cd $BACKUP_DIRECTORY
 
 if [[ $HELP == true ]] ; then
-  echo "Script para hacer backups -f: full offline, -n: full online, -i: incremental, -d: delta."
-elif [[ $TYPE -eq 1 || $TYPE -eq 2 || $TYPE -eq 3 || $TYPE -eq 4 ]] ; then
-  if [[ $TYPE -eq 1 ]] ; then
+  echo "Script para hacer backups -f: full offline, -n: full online, -i: incremental, -d: delta, -c: copy."
+elif [[ $TYPE -eq 0 || $TYPE -eq 1 || $TYPE -eq 2 || $TYPE -eq 3 || $TYPE -eq 4 ]] ; then
+  if [[ $TYPE -eq 0 ]] ; then
+    # Simula la salida de un backup para hacer el procesod e copia.
+    BACKUP=`echo "Backup successful. The timestamp for this backup image is : $TIMESTAMP"`
+    RET=$?
+  elif [[ $TYPE -eq 1 ]] ; then
     db2 connect to $DATABASE
     db2 quiesce db immediate
     db2 unquiesce db
@@ -99,10 +104,10 @@ elif [[ $TYPE -eq 1 || $TYPE -eq 2 || $TYPE -eq 3 || $TYPE -eq 4 ]] ; then
     RET=`echo $CHECK | awk '/successful/ {print "Successful"}'`
   
     if [[ $RET == "Successful" ]] ; then
-      if [[ $TYPE -le 2 ]] ; then
-        echo "Copiando backup a maquina de contingencia - $REMOTE_SERVER"
-        scp $FILENAME $REMOTE_SERVER:$BACKUP_DIRECTORY
+      echo "Copiando backup a maquina de contingencia - $REMOTE_SERVER"
+      scp $FILENAME $REMOTE_SERVER:$BACKUP_DIRECTORY
 
+      if [[ $TYPE -le 2 && $TYPE -ge 1 ]] ; then
         # Solo tiene en cuenta backups de la DB, y no de tablespaces. Razon por la que revisa que sea tipo 0.
         echo "Contando backups locales"
         QTY=$(ls -1 $BACKUP_DIRECTORY/$DATABASE.0.$INSTANCE* | wc -l)
@@ -118,7 +123,7 @@ elif [[ $TYPE -eq 1 || $TYPE -eq 2 || $TYPE -eq 3 || $TYPE -eq 4 ]] ; then
 
         echo "Contando backups remotos"
         REMOTE_QTY=$(ssh $REMOTE_SERVER ls -1t $BACKUP_DIRECTORY/$DATABASE.0.$INSTANCE\* | wc -l)
-       echo "Backups remotos $REMOTE_QTY"
+        echo "Backups remotos $REMOTE_QTY"
         if [[ $REMOTE_QTY -gt $BACKUP_QTY ]] ; then
           while [[ $REMOTE_QTY -gt $BACKUP_QTY ]] ; do
             OLD_REMOTE=$(ssh $REMOTE_SERVER ls -1t $BACKUP_DIRECTORY/\*$DATABASE\* | tail -1)
