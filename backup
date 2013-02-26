@@ -6,19 +6,25 @@
 # Se supone que la configuracion de ambas maquinas es la misma (nombre de instance
 # directorios, usuarios, nombre de base de datos, etc.)
 
+# Archivo para logs (output)
+LOGS=/tmp/backupsOutput
+
 # Directorio de backups. En ambas maquinas debe ser el mismo.
 BACKUP_DIRECTORY=/home/db2inst1/backups
 
 OLD_BACKUP_DIRECTORY=/mnt/db2/old-backups/
 
 # Nombre o IP de la maquina remota.
-REMOTE_SERVER=23.21.64.225
+REMOTE_SERVER=db2-hadr-2
 
 # Nombre de la base de datos
 DATABASE=WFSCPD
 
 # Cantidad de archivos de backups full a conservar (contienen .0. en el nombre)
-BACKUP_QTY=8
+#BACKUP_QTY=8
+
+# Cantidad de dias para conservar backups.
+BACKUP_DAYS=7
 
 # Nombre de la instancia.
 INSTANCE=db2inst1
@@ -27,12 +33,30 @@ INSTANCE=db2inst1
 # COMPRESS=
 COMPRESS=compress
 
+# Script silencioso, sin output normal, solo cuando hay errores.
+SILENT=0
+
+# Carga el ambiente de DB2
+if [ -f /home/db2inst1/sqllib/db2profile ]; then
+    . /home/db2inst1/sqllib/db2profile
+fi
+set -xv
+
+if [[ ! -e $LOGS ]] ; then
+  touch $LOGS
+  chmod 666 $LOGS
+fi
+if [[ ! -w $LOGS ]] ; then
+  echo "Archivo de logs (output) no es escribible: $LOGS"
+  exit
+fi
+
 # Pide los parametros
-TEMP=`getopt -o hnfdic: --long help,online,offline,delta,incremental,copy: \
+TEMP=`getopt -o hnfdic:s --long help,online,offline,delta,incremental,copy:,silent \
              -n backup -- "$@"`
 
 if [[ $? -ne 0 || $# -eq 0 ]] ; then
-  echo "Opcion invalida para el backup: -n | --online, -f | --offline, -i | --incremental, -d | --delta, -m | --copy : timestamp"
+   echo "Opcion invalida para el backup: [ -n | --online, -f | --offline, -i | --incremental, -d | --delta, -m | --copy : timestamp ] [ -s | --silent : sin output ]"
   exit 1
 fi
 
@@ -44,50 +68,58 @@ TYPE=0
 while [[ $# -gt 0 ]] ; do
   case "$1" in
     -c | --copy ) TYPE=0 ; TIMESTAMP=`echo $2 | awk '{print $1}'` ; shift 2 ;;
-    -f | --offline ) TYPE=1 ; shift ;;
-    -n | --online ) TYPE=2 ; shift ;;
-    -i | --incremental ) TYPE=3 ; shift ;;
     -d | --delta ) TYPE=4 ; shift ;;
+    -f | --offline ) TYPE=1 ; shift ;;
     -h | --help ) HELP=true; shift ;;
+    -i | --incremental ) TYPE=3 ; shift ;;
+    -n | --online ) TYPE=2 ; shift ;;
+    -s | --silent ) SILENT=1 ; shift ;;
     -- ) shift; break ;;
     * ) break ;;
   esac
 done
 
-# Carga el ambiente de DB2
-if [ -f /home/db2inst1/sqllib/db2profile ]; then
-    . /home/db2inst1/sqllib/db2profile
-fi
 #set -xv
 cd $BACKUP_DIRECTORY
 
+# Chequea el estado de la DB
+COMMAND_ROLE="db2 get db cfg for $DATABASE"
+ROLE=`$COMMAND_ROLE | awk '/HADR database role/ {print $5}'`
+[ $SILENT -eq 0 ] && echo "Database role $ROLE"
+
 if [[ $HELP == true ]] ; then
   echo "Script para hacer backups -f: full offline, -n: full online, -i: incremental, -d: delta, -c: copy."
-elif [[ $TYPE -eq 0 || $TYPE -eq 1 || $TYPE -eq 2 || $TYPE -eq 3 || $TYPE -eq 4 ]] ; then
+elif [[ $ROLE == "PRIMARY" && ( $TYPE -eq 0 || $TYPE -eq 1 || $TYPE -eq 2 || $TYPE -eq 3 || $TYPE -eq 4 ) ]] ; then
+  echo "----------" >> $LOGS
+  date >> $LOGS
   if [[ $TYPE -eq 0 ]] ; then
     # Simula la salida de un backup para hacer el procesod e copia.
     BACKUP=`echo "Backup successful. The timestamp for this backup image is : $TIMESTAMP"`
     RET=$?
   elif [[ $TYPE -eq 1 ]] ; then
-    db2 connect to $DATABASE
-    db2 quiesce db immediate
-    db2 unquiesce db
-    db2 terminate
-    db2 deactivate db wfscpd
-    db2 force applications all
-    echo "Haciendo backup full offline db $DATABASE"
-    BACKUP=`db2 backup db $DATABASE $COMPRESS WITHOUT PROMPTING`
+    db2 connect to $DATABASE >> $LOGS
+    db2 quiesce db immediate >> $LOGS
+    db2 unquiesce db >> $LOGS
+    db2 terminate >> $LOGS
+    db2 deactivate db wfscpd >> $LOGS
+    db2 force applications all >> $LOGS
+    [ $SILENT -eq 0 ] && echo "Haciendo backup full offline db $DATABASE"
+    echo "Haciendo backup full offline db $DATABASE" >> $LOGS
+    #BACKUP=`db2 backup db $DATABASE $COMPRESS WITHOUT PROMPTING`
     RET=$?
   elif [[ $TYPE -eq 2 ]] ; then
-    echo "Haciendo backup full online db $DATABASE"
+    [ $SILENT -eq 0 ] && echo "Haciendo backup full online db $DATABASE"
+    echo "Haciendo backup full online db $DATABASE" >> $LOGS
     BACKUP=`db2 backup db $DATABASE online $COMPRESS WITHOUT PROMPTING`
     RET=$?
   elif [[ $TYPE -eq 3 ]] ; then
-    echo "Haciendo online incremental backup db $DATABASE"
+    [ $SILENT -eq 0 ] && echo "Haciendo online incremental backup db $DATABASE"
+    echo "Haciendo online incremental backup db $DATABASE" >> $LOGS
     BACKUP=`db2 backup db $DATABASE online incremental $COMPRESS WITHOUT PROMPTING`
     RET=$?
   elif [[ $TYPE -eq 4 ]] ; then
-    echo "Haciendo online incremental delta backup db $DATABASE"
+    [ $SILENT -eq 0 ] && echo "Haciendo online incremental delta backup db $DATABASE"
+    echo "Haciendo online incremental delta backup db $DATABASE" >> $LOGS
     BACKUP=`db2 backup db $DATABASE online incremental delta $COMPRESS WITHOUT PROMPTING`
     RET=$?
   else
@@ -99,50 +131,77 @@ elif [[ $TYPE -eq 0 || $TYPE -eq 1 || $TYPE -eq 2 || $TYPE -eq 3 || $TYPE -eq 4 
     BACKUP=`echo $BACKUP | awk '{print $11}'`
     FILENAME=$(ls -1 $BACKUP_DIRECTORY/*$BACKUP*)
 
-    echo "Chequando archivo de backup - $FILENAME"
+    if [[ $FILENAME == "" ]] ; then
+      echo "Backup con timestamp $BACKUP no existe"
+      echo "Backup con timestamp $BACKUP no existe" >> $LOGS
+      exit -3
+    fi
+
+    if [[ ! -f $FILENAME ]] ; then
+      echo "El backup se realizo satisfactoriamente. Se ejecuto con un usuario "
+      echo "diferente a db2inst1 por lo que no se puede leer el archivo de backup."
+      echo "No es un error, pero el archivo de backup no se pudo chequear, ni "
+      echo "copiar en la maquina secundaria."
+      exit -4
+    fi
+
+    [ $SILENT -eq 0 ] && echo "Chequando archivo de backup - $FILENAME"
+    echo "Chequando archivo de backup - $FILENAME" >> $LOGS
     CHECK=`db2ckbkp $FILENAME`
     RET=`echo $CHECK | awk '/successful/ {print "Successful"}'`
   
     if [[ $RET == "Successful" ]] ; then
-      echo "Copiando backup a maquina de contingencia - $REMOTE_SERVER"
-      scp $FILENAME $REMOTE_SERVER:$BACKUP_DIRECTORY
+      [ $SILENT -eq 0 ] && echo "Copiando backup a maquina de contingencia - $REMOTE_SERVER"
+      echo "Copiando backup a maquina de contingencia - $REMOTE_SERVER" >> $LOGS
+      scp $FILENAME $REMOTE_SERVER:$BACKUP_DIRECTORY >> $LOGS
 
       if [[ $TYPE -le 2 && $TYPE -ge 1 ]] ; then
         # Solo tiene en cuenta backups de la DB, y no de tablespaces. Razon por la que revisa que sea tipo 0.
-        echo "Contando backups locales"
-        QTY=$(ls -1 $BACKUP_DIRECTORY/$DATABASE.0.$INSTANCE* | wc -l)
-        echo "Backup locales $QTY"
-        if [[ $QTY -gt $BACKUP_QTY ]] ; then
-          while [[ $QTY -gt $BACKUP_QTY ]] ; do
-            OLD_BACKUP=`ls -1t $DATABASE.0.$INSTANCE* | tail -1`
-            echo "Moviendo el backup mas viejo a /mnt - $OLD_BACKUP"
-            mv $OLD_BACKUP $OLD_BACKUP_DIRECTORY
-            QTY=$(ls -1 $BACKUP_DIRECTORY/$DATABASE.0.$INSTANCE* | wc -l)
-          done
-        fi
+        [ $SILENT -eq 0 ] && echo "Contando backups locales"
+        echo "Contando backups locales" >> $LOGS
+        echo "find $BACKUP_DIRECTORY -name "$DATABASE.0.$INSTANCE*" -ctime +$BACKUP_DAYS | wc -l" >> $LOGS
+        QTY=$(find $BACKUP_DIRECTORY -name "$DATABASE.0.$INSTANCE*" -ctime +$BACKUP_DAYS | wc -l)
+        [ $SILENT -eq 0 ] && echo "Backup locales $QTY"
+        echo "Backup locales $QTY" >> $LOGS
+        while [[ $QTY -gt 0 ]] ; do
+          OLD_BACKUP=$(find $BACKUP_DIRECTORY -name "$DATABASE.0.$INSTANCE*" -ctime +$BACKUP_DAYS | sort | head -1)
+          [ $SILENT -eq 0 ] && echo "Moviendo el backup mas viejo a /mnt - $OLD_BACKUP"
+          echo "Moviendo el backup mas viejo a /mnt - $OLD_BACKUP" >> $LOGS
+          mv $OLD_BACKUP $OLD_BACKUP_DIRECTORY >> $LOGS
+          QTY=$(find $BACKUP_DIRECTORY -name "$DATABASE.0.$INSTANCE*" -ctime +$BACKUP_DAYS | wc -l)
+        done
 
-        echo "Contando backups remotos"
-        REMOTE_QTY=$(ssh $REMOTE_SERVER ls -1t $BACKUP_DIRECTORY/$DATABASE.0.$INSTANCE\* | wc -l)
-        echo "Backups remotos $REMOTE_QTY"
-        if [[ $REMOTE_QTY -gt $BACKUP_QTY ]] ; then
-          while [[ $REMOTE_QTY -gt $BACKUP_QTY ]] ; do
-            OLD_REMOTE=$(ssh $REMOTE_SERVER ls -1t $BACKUP_DIRECTORY/\*$DATABASE\* | tail -1)
-            echo "Borrando backup remote mas viejo - $OLD_REMOTE"
-            ssh $REMOTE_SERVER rm $OLD_REMOTE
-            REMOTE_QTY=$(ssh $REMOTE_SERVER ls -1t $BACKUP_DIRECTORY/$DATABASE.0.$INSTANCE\* | wc -l)
-          done
-        fi
+        [ $SILENT -eq 0 ] && echo "Contando backups remotos"
+        echo "Contando backups remotos" >> $LOGS
+        echo "ssh $REMOTE_SERVER find $BACKUP_DIRECTORY -name "$DATABASE.0.$INSTANCE*" -mtime +$BACKUP_DAYS | wc -l" >> $LOGS
+        REMOTE_QTY=$(ssh $REMOTE_SERVER find $BACKUP_DIRECTORY -name "$DATABASE.0.$INSTANCE*" -mtime +$BACKUP_DAYS | wc -l)
+        [ $SILENT -eq 0 ] && echo "Backups remotos $REMOTE_QTY"
+        echo "Backups remotos $REMOTE_QTY" >> $LOGS
+        while [[ $REMOTE_QTY -gt 0 ]] ; do
+          echo "ssh $REMOTE_SERVER find $BACKUP_DIRECTORY -name "$DATABASE.0.$INSTANCE*" -mtime +$BACKUP_DAYS | sort | head -1" >> $LOGS
+          OLD_REMOTE=$(ssh $REMOTE_SERVER find $BACKUP_DIRECTORY -name "$DATABASE.0.$INSTANCE*" -mtime +$BACKUP_DAYS | sort | head -1)
+          [ $SILENT -eq 0 ] && echo "Borrando backup remote mas viejo - $OLD_REMOTE"
+          echo "Borrando backup remote mas viejo - $OLD_REMOTE" >> $LOGS
+          ssh $REMOTE_SERVER rm $OLD_REMOTE >> $LOGS
+          echo "ssh $REMOTE_SERVER find $BACKUP_DIRECTORY -name "$DATABASE.0.$INSTANCE*" -mtime +$BACKUP_DAYS | wc -l" >> $LOGS
+          REMOTE_QTY=$(ssh $REMOTE_SERVER find $BACKUP_DIRECTORY -name "$DATABASE.0.$INSTANCE*" -mtime +$BACKUP_DAYS | wc -l)
+        done
       fi
     else
       echo "Borrando backup corrupto"
+      echo "Borrando backup corrupto $FILENAME" >> $LOGS
       rm $FILENAME
       exit 2
     fi
   else
-    echo "El backup full fallo! Es necesario volver a lanzarlo."
+    echo "El backup fallo! Es necesario volver a lanzarlo."
     echo $BACKUP
+    echo "El backup fallo! Es necesario volver a lanzarlo." >> $LOGS
+    echo $BACKUP >> $LOGS
     exit 1
   fi
 else
   echo "Opcion no reconocida: $TYPE."
+  echo "Opcion no reconocida: $TYPE." >> $LOGS
 fi
+echo  >> $LOGS
