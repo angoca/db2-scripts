@@ -1,0 +1,25 @@
+#! /usr/bin/env bash
+
+# Este script restaura la base de datos con el ultimo backup que se encuentre en
+# ~db2inst1/backups
+# Recibe el timestamp que debe restaurar.
+
+DATABASE=WFSCPD
+
+if [ -f /home/db2inst1/sqllib/db2profile ]; then
+    . /home/db2inst1/sqllib/db2profile
+fi
+
+ROLE=`db2 get db cfg for wfscpd | grep -i role | awk '{print $5}'`
+if [[ $ROLE == "STANDBY" ]] ; then
+ TIMESTAMP=$1
+ echo "Terminando conexiones"
+ db2 force applications all
+ echo "Desactivando DB"
+ db2 deactivate db $DATABASE
+ echo "Restaurando backup de $TIMESTAMP"
+ cd /home/db2inst1/backups
+ db2 restore db $DATABASE taken at $TIMESTAMP WITHOUT PROMPTING
+ echo "Reactivando Alta disponibilidad"
+ db2 start hadr on db $DATABASE as standby
+fi
