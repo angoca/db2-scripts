@@ -1,6 +1,9 @@
 #! /usr/bin/env bash
-
 # Este script inicia la base de datos de manera primary
 
+db2 stop hadr on db wfscpd
+ps -ef | grep ssh | grep db2-hadr-2
+kill ` ps -ef | grep ssh | grep db2-hadr-2 | awk '{print $2}'`
 ssh db2-hadr-2 -R 51001:127.0.0.1:51000 -N -f
 db2 start hadr on db wfscpd as primary
+
