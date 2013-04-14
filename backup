@@ -7,7 +7,7 @@
 # directorios, usuarios, nombre de base de datos, etc.)
 
 # Archivo para logs (output)
-LOGS=/tmp/backupsOutput
+LOGS=/mnt/script-logs/backupsOutput
 
 # Directorio de backups. En ambas maquinas debe ser el mismo.
 BACKUP_DIRECTORY=/home/db2inst1/backups
@@ -40,7 +40,7 @@ SILENT=0
 if [ -f /home/db2inst1/sqllib/db2profile ]; then
     . /home/db2inst1/sqllib/db2profile
 fi
-set -xv
+#set -xv
 
 if [[ ! -e $LOGS ]] ; then
   touch $LOGS
@@ -79,7 +79,6 @@ while [[ $# -gt 0 ]] ; do
   esac
 done
 
-#set -xv
 cd $BACKUP_DIRECTORY
 
 # Chequea el estado de la DB
@@ -101,11 +100,11 @@ elif [[ $ROLE == "PRIMARY" && ( $TYPE -eq 0 || $TYPE -eq 1 || $TYPE -eq 2 || $TY
     db2 quiesce db immediate >> $LOGS
     db2 unquiesce db >> $LOGS
     db2 terminate >> $LOGS
-    db2 deactivate db wfscpd >> $LOGS
+    db2 deactivate db $DATABASE >> $LOGS
     db2 force applications all >> $LOGS
     [ $SILENT -eq 0 ] && echo "Haciendo backup full offline db $DATABASE"
     echo "Haciendo backup full offline db $DATABASE" >> $LOGS
-    #BACKUP=`db2 backup db $DATABASE $COMPRESS WITHOUT PROMPTING`
+    BACKUP=`db2 backup db $DATABASE $COMPRESS WITHOUT PROMPTING`
     RET=$?
   elif [[ $TYPE -eq 2 ]] ; then
     [ $SILENT -eq 0 ] && echo "Haciendo backup full online db $DATABASE"
@@ -153,7 +152,7 @@ elif [[ $ROLE == "PRIMARY" && ( $TYPE -eq 0 || $TYPE -eq 1 || $TYPE -eq 2 || $TY
     if [[ $RET == "Successful" ]] ; then
       [ $SILENT -eq 0 ] && echo "Copiando backup a maquina de contingencia - $REMOTE_SERVER"
       echo "Copiando backup a maquina de contingencia - $REMOTE_SERVER" >> $LOGS
-      scp $FILENAME $REMOTE_SERVER:$BACKUP_DIRECTORY >> $LOGS
+      scp -p $FILENAME $REMOTE_SERVER:$BACKUP_DIRECTORY >> $LOGS
 
       if [[ $TYPE -le 2 && $TYPE -ge 1 ]] ; then
         # Solo tiene en cuenta backups de la DB, y no de tablespaces. Razon por la que revisa que sea tipo 0.
@@ -186,6 +185,11 @@ elif [[ $ROLE == "PRIMARY" && ( $TYPE -eq 0 || $TYPE -eq 1 || $TYPE -eq 2 || $TY
           echo "ssh $REMOTE_SERVER find $BACKUP_DIRECTORY -name "$DATABASE.0.$INSTANCE*" -mtime +$BACKUP_DAYS | wc -l" >> $LOGS
           REMOTE_QTY=$(ssh $REMOTE_SERVER find $BACKUP_DIRECTORY -name "$DATABASE.0.$INSTANCE*" -mtime +$BACKUP_DAYS | wc -l)
         done
+        # Restaura el archivo de historia de la base de datos.
+        echo "Restaurando archivo de historia en standby" >> $LOGS
+        ssh $REMOTE_SERVER db2 deactivate db $DATABASE >> $LOGS
+        ssh $REMOTE_SERVER db2 restore db $DATABASE history file taken at $BACKUP >> $LOGS
+        ssh $REMOTE_SERVER db2 start hadr on db $DATABASE as standby >> $LOGS
       fi
     else
       echo "Borrando backup corrupto"
@@ -200,6 +204,9 @@ elif [[ $ROLE == "PRIMARY" && ( $TYPE -eq 0 || $TYPE -eq 1 || $TYPE -eq 2 || $TY
     echo $BACKUP >> $LOGS
     exit 1
   fi
+elif [[ $ROLE == "STANDBY" ]] ; then
+  [ $SILENT -eq 0 ] && echo "Standby database, backup not possible."
+  echo "Standby database, backup not possible." >> $LOGS
 else
   echo "Opcion no reconocida: $TYPE."
   echo "Opcion no reconocida: $TYPE." >> $LOGS
