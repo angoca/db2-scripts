@@ -6,6 +6,10 @@
 
 DATABASE=WFSCPD
 
+if [[ $2 == "history" ]] ; then
+  HISTORY=true
+fi
+
 if [ -f /home/db2inst1/sqllib/db2profile ]; then
     . /home/db2inst1/sqllib/db2profile
 fi
@@ -17,9 +21,14 @@ if [[ $ROLE == "STANDBY" ]] ; then
  db2 force applications all
  echo "Desactivando DB"
  db2 deactivate db $DATABASE
- echo "Restaurando backup de $TIMESTAMP"
  cd /home/db2inst1/backups
- db2 restore db $DATABASE taken at $TIMESTAMP WITHOUT PROMPTING
+ if [[ $HISTORY != true ]] ; then
+  echo "Restaurando backup de $TIMESTAMP"
+  db2 restore db $DATABASE taken at $TIMESTAMP WITHOUT PROMPTING
+ else
+  echo "Restaurando history file de $TIMESTAMP"
+  db2 restore db $DATABASE history file taken at $TIMESTAMP
+ fi
  echo "Reactivando Alta disponibilidad"
  db2 start hadr on db $DATABASE as standby
 fi

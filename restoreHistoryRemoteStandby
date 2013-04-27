@@ -1,0 +1,18 @@
+#! /usr/bin/env bash
+
+# Este script restaura la base de datos con el ultimo backup que se encuentre en
+# ~db2inst1/backups
+
+DATABASE=WFSCPD
+
+if [ -f /home/db2inst1/sqllib/db2profile ]; then
+    . /home/db2inst1/sqllib/db2profile
+fi
+
+echo "Recuperando fecha del ultimo backup"
+db2 connect to wfscpd > /dev/null
+TIMESTAMP=`db2 -x "select max(START_TIME) from SYSIBMADM.DB_HISTORY where OPERATION = 'B' and OPERATIONTYPE = 'N'"`
+echo "Fecha: $TIMESTAMP"
+db2 connect reset > /dev/null
+
+ssh db2-hadr-2 scripts/restoreStandBy $TIMESTAMP history
