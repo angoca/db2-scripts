@@ -187,9 +187,7 @@ elif [[ $ROLE == "PRIMARY" && ( $TYPE -eq 0 || $TYPE -eq 1 || $TYPE -eq 2 || $TY
         done
         # Restaura el archivo de historia de la base de datos.
         echo "Restaurando archivo de historia en standby" >> $LOGS
-        ssh $REMOTE_SERVER db2 deactivate db $DATABASE >> $LOGS
-        ssh $REMOTE_SERVER db2 restore db $DATABASE history file taken at $BACKUP >> $LOGS
-        ssh $REMOTE_SERVER db2 start hadr on db $DATABASE as standby >> $LOGS
+        ./restoreHistoryRemoteStandby
       fi
     else
       echo "Borrando backup corrupto"
