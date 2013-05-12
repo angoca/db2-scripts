@@ -14,6 +14,10 @@ BACKUP_DIRECTORY=/home/db2inst1/backups
 
 OLD_BACKUP_DIRECTORY=/mnt/db2/old-backups/
 
+SCRIPTS_DIRECTORY=/home/db2inst1/scripts
+
+INSTANCE_DIRECTORY=/home/db2inst1/sqllib
+
 # Nombre o IP de la maquina remota.
 REMOTE_SERVER=db2-hadr-2
 
@@ -37,8 +41,8 @@ COMPRESS=compress
 SILENT=0
 
 # Carga el ambiente de DB2
-if [ -f /home/db2inst1/sqllib/db2profile ]; then
-    . /home/db2inst1/sqllib/db2profile
+if [ -f ${INSTANCE_DIRECTORY}/db2profile ]; then
+    . ${INSTANCE_DIRECTORY}/db2profile
 fi
 #set -xv
 
@@ -187,7 +191,7 @@ elif [[ $ROLE == "PRIMARY" && ( $TYPE -eq 0 || $TYPE -eq 1 || $TYPE -eq 2 || $TY
         done
         # Restaura el archivo de historia de la base de datos.
         echo "Restaurando archivo de historia en standby" >> $LOGS
-        ./restoreHistoryRemoteStandby
+        ${SCRIPTS_DIRECTORY}/restoreHistoryRemoteStandby
       fi
     else
       echo "Borrando backup corrupto"
