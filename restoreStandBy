@@ -5,10 +5,25 @@
 # Recibe el timestamp que debe restaurar.
 
 DATABASE=WFSCPD
+HISTORY=false
+# Script silencioso, sin output normal, solo cuando hay errores.
+SILENT=0
 
-if [[ $2 == "history" ]] ; then
-  HISTORY=true
-fi
+# Pide los parametros
+TEMP=`getopt -o S --long history,silent \
+             -n restoreStandby -- "$@"`
+
+# Note the quotes around $TEMP: they are essential!
+eval set -- "$TEMP"
+
+while [[ $# -gt 0 ]] ; do
+  case "$1" in
+    --history ) HISTORY=true ; shift ;;
+    -s | --silent ) SILENT=1 ; shift ;;
+    -- ) shift; break ;;
+    * ) break ;;
+  esac
+done
 
 if [ -f /home/db2inst1/sqllib/db2profile ]; then
     . /home/db2inst1/sqllib/db2profile
@@ -17,18 +32,19 @@ fi
 ROLE=`db2 get db cfg for wfscpd | grep -i role | awk '{print $5}'`
 if [[ $ROLE == "STANDBY" ]] ; then
  TIMESTAMP=$1
- echo "Terminando conexiones"
+ [ $SILENT -eq 0 ] && echo "Terminando conexiones"
  db2 force applications all
- echo "Desactivando DB"
+ [ $SILENT -eq 0 ] && echo "Desactivando DB"
  db2 deactivate db $DATABASE
  cd /home/db2inst1/backups
  if [[ $HISTORY != true ]] ; then
-  echo "Restaurando backup de $TIMESTAMP"
+  [ $SILENT -eq 0 ] && echo "Restaurando backup de $TIMESTAMP"
   db2 restore db $DATABASE taken at $TIMESTAMP WITHOUT PROMPTING
  else
-  echo "Restaurando history file de $TIMESTAMP"
+  [ $SILENT -eq 0 ] && echo "Restaurando history file de $TIMESTAMP"
   db2 restore db $DATABASE history file taken at $TIMESTAMP
  fi
- echo "Reactivando Alta disponibilidad"
+ [ $SILENT -eq 0 ] && echo "Reactivando Alta disponibilidad"
  db2 start hadr on db $DATABASE as standby
 fi
+

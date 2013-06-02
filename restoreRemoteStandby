@@ -11,7 +11,7 @@ fi
 
 echo "Recuperando fecha del ultimo backup"
 db2 connect to wfscpd > /dev/null
-TIMESTAMP=`db2 -x "select max(START_TIME) from SYSIBMADM.DB_HISTORY where OPERATION = 'B' and OPERATIONTYPE = 'N'"`
+TIMESTAMP=`db2 -x "select max(START_TIME) from SYSIBMADM.DB_HISTORY where OPERATION = 'B' and (OPERATIONTYPE = 'N' or OPERATIONTYPE = 'F')"`
 echo "Fecha: $TIMESTAMP"
 db2 connect reset > /dev/null
 
