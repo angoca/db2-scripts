@@ -60,7 +60,7 @@ TEMP=`getopt -o hnfdic:s --long help,online,offline,delta,incremental,copy:,sile
              -n backup -- "$@"`
 
 if [[ $? -ne 0 || $# -eq 0 ]] ; then
-   echo "Opcion invalida para el backup: [ -n | --online, -f | --offline, -i | --incremental, -d | --delta, -m | --copy : timestamp ] [ -s | --silent : sin output ]"
+  echo "Opcion invalida para el backup: [ -n | --online, -f | --offline, -i | --incremental, -d | --delta, -m | --copy : timestamp ] [ -s | --silent : sin output ]"
   exit 1
 fi
 
