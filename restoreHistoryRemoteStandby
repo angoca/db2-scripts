@@ -7,7 +7,7 @@
 SILENT=0
 
 DATABASE=WFSCPD
-REMOTE_DIR=scripts-db
+REMOTE_DIR=scripts
 
 # Pide los parametros
 TEMP=`getopt -o hS --long help,silent \

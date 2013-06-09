@@ -4,7 +4,7 @@
 # ~db2inst1/backups
 
 DATABASE=WFSCPD
-REMOTE_DIR=scripts-db
+REMOTE_DIR=scripts
 
 if [ -f /home/db2inst1/sqllib/db2profile ]; then
     . /home/db2inst1/sqllib/db2profile
