@@ -7,6 +7,7 @@
 SILENT=0
 
 DATABASE=WFSCPD
+REMOTE_DIR=scripts-db
 
 # Pide los parametros
 TEMP=`getopt -o hS --long help,silent \
@@ -42,5 +43,5 @@ TIMESTAMP=`db2 -x "select max(START_TIME) from SYSIBMADM.DB_HISTORY where OPERAT
 [ $SILENT -eq 0 ] && echo "Fecha: $TIMESTAMP"
 db2 connect reset > /dev/null
 
-ssh db2-hadr-2 scripts/restoreStandBy $TIMESTAMP --history --silent
+ssh db2-hadr-2 ${REMOTE_DIR}/restoreStandBy $TIMESTAMP --history --silent
 

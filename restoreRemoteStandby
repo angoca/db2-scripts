@@ -4,6 +4,7 @@
 # ~db2inst1/backups
 
 DATABASE=WFSCPD
+REMOTE_DIR=scripts-db
 
 if [ -f /home/db2inst1/sqllib/db2profile ]; then
     . /home/db2inst1/sqllib/db2profile
@@ -15,4 +16,4 @@ TIMESTAMP=`db2 -x "select max(START_TIME) from SYSIBMADM.DB_HISTORY where OPERAT
 echo "Fecha: $TIMESTAMP"
 db2 connect reset > /dev/null
 
-ssh db2-hadr-2 scripts/restoreStandBy $TIMESTAMP
+ssh db2-hadr-2 ${REMOTE_DIR}/restoreStandBy $TIMESTAMP
