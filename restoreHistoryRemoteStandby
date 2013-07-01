@@ -10,18 +10,17 @@ DATABASE=WFSCPD
 REMOTE_DIR=scripts
 
 # Pide los parametros
-TEMP=`getopt -o hS --long help,silent \
+TEMP=`getopt -o hs --long help,silent \
              -n restoreRemoteHistoryFile -- "$@"`
 
 # Note the quotes around $TEMP: they are essential!
 eval set -- "$TEMP"
 
 HELP=false
-TYPE=0
 while [[ $# -gt 0 ]] ; do
   case "$1" in
     -h | --help ) HELP=true; shift ;;
-    -S | --silent ) SILENT=1 ; shift ;;
+    -s | --silent ) SILENT=1 ; shift ;;
     -- ) shift; break ;;
     * ) HELP=true ;;
   esac

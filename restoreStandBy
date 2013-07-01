@@ -10,7 +10,7 @@ HISTORY=false
 SILENT=0
 
 # Pide los parametros
-TEMP=`getopt -o S --long history,silent \
+TEMP=`getopt -o s --long history,silent \
              -n restoreStandby -- "$@"`
 
 # Note the quotes around $TEMP: they are essential!
@@ -33,18 +33,18 @@ ROLE=`db2 get db cfg for wfscpd | grep -i role | awk '{print $5}'`
 if [[ $ROLE == "STANDBY" ]] ; then
  TIMESTAMP=$1
  [ $SILENT -eq 0 ] && echo "Terminando conexiones"
- db2 force applications all
+ db2 force applications all > /dev/null
  [ $SILENT -eq 0 ] && echo "Desactivando DB"
- db2 deactivate db $DATABASE
+ db2 deactivate db $DATABASE > /dev/null
  cd /home/db2inst1/backups
  if [[ $HISTORY != true ]] ; then
   [ $SILENT -eq 0 ] && echo "Restaurando backup de $TIMESTAMP"
-  db2 restore db $DATABASE taken at $TIMESTAMP WITHOUT PROMPTING
+  db2 restore db $DATABASE taken at $TIMESTAMP WITHOUT PROMPTING > /dev/null
  else
   [ $SILENT -eq 0 ] && echo "Restaurando history file de $TIMESTAMP"
-  db2 restore db $DATABASE history file taken at $TIMESTAMP
+  db2 restore db $DATABASE history file taken at $TIMESTAMP > /dev/null
  fi
  [ $SILENT -eq 0 ] && echo "Reactivando Alta disponibilidad"
- db2 start hadr on db $DATABASE as standby
+ db2 start hadr on db $DATABASE as standby > /dev/null
 fi
 

@@ -191,7 +191,11 @@ elif [[ $ROLE == "PRIMARY" && ( $TYPE -eq 0 || $TYPE -eq 1 || $TYPE -eq 2 || $TY
         done
         # Restaura el archivo de historia de la base de datos.
         echo "Restaurando archivo de historia en standby" >> $LOGS
-        ${SCRIPTS_DIRECTORY}/restoreHistoryRemoteStandby
+        if [[ $SILENT -eq 0 ]] ; then
+          ${SCRIPTS_DIRECTORY}/restoreHistoryRemoteStandby -s
+        else
+          ${SCRIPTS_DIRECTORY}/restoreHistoryRemoteStandby
+        fi
       fi
     else
       echo "Borrando backup corrupto"
