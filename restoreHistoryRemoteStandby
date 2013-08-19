@@ -38,9 +38,10 @@ fi
 
 [ $SILENT -eq 0 ] && echo "Recuperando fecha del ultimo backup"
 db2 connect to wfscpd > /dev/null
-TIMESTAMP=`db2 -x "select max(START_TIME) from SYSIBMADM.DB_HISTORY where OPERATION = 'B' and OPERATIONTYPE = 'N'"`
+TIMESTAMP=$(db2 -x "select max(START_TIME) from SYSIBMADM.DB_HISTORY where OPERATION = 'B' and OPERATIONTYPE = 'N'")
 [ $SILENT -eq 0 ] && echo "Fecha: $TIMESTAMP"
 db2 connect reset > /dev/null
 
 ssh db2-hadr-2 ${REMOTE_DIR}/restoreStandBy $TIMESTAMP --history --silent
+
 

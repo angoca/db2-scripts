@@ -3,17 +3,45 @@
 # Este script restaura la base de datos con el ultimo backup que se encuentre en
 # ~db2inst1/backups
 
+# Script silencioso, sin output normal, solo cuando hay errores.
+SILENT=0
+
 DATABASE=WFSCPD
 REMOTE_DIR=scripts
+
+# Pide los parametros
+TEMP=`getopt -o hs --long help,silent \
+             -n restoreRemoteStandby -- "$@"`
+
+# Note the quotes around $TEMP: they are essential!
+eval set -- "$TEMP"
+
+HELP=false
+while [[ $# -gt 0 ]] ; do
+  case "$1" in
+    -h | --help ) HELP=true; shift ;;
+    -s | --silent ) SILENT=1 ; shift ;;
+    -- ) shift; break ;;
+    * ) HELP=true ;;
+  esac
+done
+
+if [[ $HELP == true ]] ; then
+  echo "Opciones para el restore remote: [ -h | --help ] [ -s | --silent : sin output ]"
+
+  exit -2
+fi
 
 if [ -f /home/db2inst1/sqllib/db2profile ]; then
     . /home/db2inst1/sqllib/db2profile
 fi
 
-echo "Recuperando fecha del ultimo backup"
+[ $SILENT -eq 0 ] && echo "Recuperando fecha del ultimo backup"
 db2 connect to wfscpd > /dev/null
-TIMESTAMP=`db2 -x "select max(START_TIME) from SYSIBMADM.DB_HISTORY where OPERATION = 'B' and (OPERATIONTYPE = 'N' or OPERATIONTYPE = 'F')"`
-echo "Fecha: $TIMESTAMP"
+TIMESTAMP=$(db2 -x "select max(START_TIME) from SYSIBMADM.DB_HISTORY where OPERATION = 'B' and (OPERATIONTYPE = 'N' or OPERATIONTYPE = 'F')")
+[ $SILENT -eq 0 ] && echo "Fecha: $TIMESTAMP"
 db2 connect reset > /dev/null
 
-ssh db2-hadr-2 ${REMOTE_DIR}/restoreStandBy $TIMESTAMP
+ssh db2-hadr-2 ${REMOTE_DIR}/restoreStandBy $TIMESTAMP --silent
+
+
