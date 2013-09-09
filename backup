@@ -192,9 +192,9 @@ elif [[ $ROLE == "PRIMARY" && ( $TYPE -eq 0 || $TYPE -eq 1 || $TYPE -eq 2 || $TY
         # Restaura el archivo de historia de la base de datos.
         echo "Restaurando archivo de historia en standby" >> $LOGS
         if [[ $SILENT -eq 0 ]] ; then
-          ${SCRIPTS_DIRECTORY}/restoreHistoryRemoteStandby -s
-        else
           ${SCRIPTS_DIRECTORY}/restoreHistoryRemoteStandby
+        else
+          ${SCRIPTS_DIRECTORY}/restoreHistoryRemoteStandby -s
         fi
       fi
     else
