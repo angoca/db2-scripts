@@ -1,5 +1,5 @@
 #!/bin/bash
 
 SCRIPTS_DIR=/home/db2inst1/monitor-db2-with-nagios
-${SCRIPTS_DIR}/check_io_cleaners -i /home/db2inst1/ -d wfscpd -a -K
+${SCRIPTS_DIR}/check_io_cleaners -i /home/db2inst1/ -d wfscpd -c 90 -w 95 -a -K
 
