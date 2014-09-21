@@ -1,0 +1,5 @@
+#!/bin/bash
+
+SCRIPTS_DIR=/home/db2inst1/monitor-db2-with-nagios
+${SCRIPTS_DIR}/check_tablespace_size -i /home/db2inst1/ -d wfscpd -n TS_D_8K_XL -K
+
