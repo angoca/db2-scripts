@@ -1,5 +1,5 @@
 #!/bin/bash
 
 SCRIPTS_DIR=/home/db2inst1/monitor-db2-with-nagios
-${SCRIPTS_DIR}/check_db2diag -i /home/db2inst1/ -x -K
+${SCRIPTS_DIR}/check_instance_memory -i /home/db2inst1/ -K
 
