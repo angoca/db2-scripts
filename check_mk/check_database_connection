@@ -1,0 +1,5 @@
+#!/bin/bash
+
+SCRIPTS_DIR=/home/db2inst1/monitor-db2-with-nagios
+${SCRIPTS_DIR}/check_database_connection -i /home/db2inst1/ -d wfscpd -K
+
