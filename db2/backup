@@ -92,7 +92,7 @@ ROLE=`$COMMAND_ROLE | awk '/HADR database role/ {print $5}'`
 
 if [[ $HELP == true ]] ; then
   echo "Script para hacer backups -f: full offline, -n: full online, -i: incremental, -d: delta, -c: copy."
-elif [[ $ROLE == "PRIMARY" && ( $TYPE -eq 0 || $TYPE -eq 1 || $TYPE -eq 2 || $TYPE -eq 3 || $TYPE -eq 4 ) ]] ; then
+elif [[ ( $ROLE == "PRIMARY" || $ROLE == "STANDARD" ) && ( $TYPE -eq 0 || $TYPE -eq 1 || $TYPE -eq 2 || $TYPE -eq 3 || $TYPE -eq 4 ) ]] ; then
   echo "----------" >> $LOGS
   date >> $LOGS
   if [[ $TYPE -eq 0 ]] ; then
@@ -192,9 +192,9 @@ elif [[ $ROLE == "PRIMARY" && ( $TYPE -eq 0 || $TYPE -eq 1 || $TYPE -eq 2 || $TY
         # Restaura el archivo de historia de la base de datos.
         echo "Restaurando archivo de historia en standby" >> $LOGS
         if [[ $SILENT -eq 0 ]] ; then
-          ${SCRIPTS_DIRECTORY}/restoreHistoryRemoteStandby
+          ${SCRIPTS_DIRECTORY}/db2/restoreHistoryRemoteStandby
         else
-          ${SCRIPTS_DIRECTORY}/restoreHistoryRemoteStandby -s
+          ${SCRIPTS_DIRECTORY}/db2/restoreHistoryRemoteStandby -s
         fi
       fi
     else
