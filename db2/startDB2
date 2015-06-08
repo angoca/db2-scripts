@@ -1,0 +1,6 @@
+#!/bin/bash
+
+db2 activate db wfscpd
+db2 connect to wfscpd
+db2 list applications
+

@@ -3,7 +3,7 @@
 # Este script inicia la base de datos de manera standby
 
 db2 deactivate db wfscpd
-ps -ef | grep ssh | grep db2-hadr-1
-kill ` ps -ef | grep ssh | grep db2-hadr-1 | awk '{print $2}'`
-ssh db2-hadr-1 -R 51001:127.0.0.1:51000 -N -f
+#ps -ef | grep ssh | grep db2-1
+#kill ` ps -ef | grep ssh | grep db2-1 | awk '{print $2}'`
+#ssh db2-1 -R 51001:127.0.0.1:51000 -N -f
 db2 start hadr on db wfscpd as standby

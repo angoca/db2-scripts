@@ -1,0 +1,13 @@
+#!/bin/bash
+
+DATABASE=wfscpd
+SCRIPTS=/home/db2inst1/scripts/db2
+
+db2 connect reset
+db2 connect to $DATABASE
+db2 quiesce db immediate
+db2 terminate
+db2 deactivate db wfscpd
+db2 force applications all
+db2stop
+$SCRIPTS/rotateLogs

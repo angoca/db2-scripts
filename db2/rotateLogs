@@ -3,7 +3,7 @@
 # Llama al sistema de rotacion de logs y mueve logs pasados al directorio old.
 
 # Archivo para logs (output)
-LOGS=/mnt/script-logs/rotateLogsOutput
+LOGS=/home/db2inst1/scripts/db2/output/rotateLogsOutput.log
 
 # Carga el ambiente de DB2
 if [ -f /home/db2inst1/sqllib/db2profile ]; then
@@ -29,4 +29,4 @@ DIAGPATH=`db2 get dbm cfg | awk '/\(DIAGPATH\)/ {print $7}'`
 
 cd $DIAGPATH
 
-mv -v db2diag.?.log_* old >> $LOGS
+mv -v db2diag.*.log_* old >> $LOGS

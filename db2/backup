@@ -7,12 +7,10 @@
 # directorios, usuarios, nombre de base de datos, etc.)
 
 # Archivo para logs (output)
-LOGS=/mnt/script-logs/backupsOutput
+LOGS=/home/db2inst1/scripts/db2/output/backups.log
 
 # Directorio de backups. En ambas maquinas debe ser el mismo.
 BACKUP_DIRECTORY=/home/db2inst1/backups
-
-OLD_BACKUP_DIRECTORY=/mnt/db2/old-backups/
 
 SCRIPTS_DIRECTORY=/home/db2inst1/scripts
 
@@ -166,13 +164,6 @@ elif [[ ( $ROLE == "PRIMARY" || $ROLE == "STANDARD" ) && ( $TYPE -eq 0 || $TYPE 
         QTY=$(find $BACKUP_DIRECTORY -name "$DATABASE.0.$INSTANCE*" -ctime +$BACKUP_DAYS | wc -l)
         [ $SILENT -eq 0 ] && echo "Backup locales $QTY"
         echo "Backup locales $QTY" >> $LOGS
-        while [[ $QTY -gt 0 ]] ; do
-          OLD_BACKUP=$(find $BACKUP_DIRECTORY -name "$DATABASE.0.$INSTANCE*" -ctime +$BACKUP_DAYS | sort | head -1)
-          [ $SILENT -eq 0 ] && echo "Moviendo el backup mas viejo a /mnt - $OLD_BACKUP"
-          echo "Moviendo el backup mas viejo a /mnt - $OLD_BACKUP" >> $LOGS
-          mv $OLD_BACKUP $OLD_BACKUP_DIRECTORY >> $LOGS
-          QTY=$(find $BACKUP_DIRECTORY -name "$DATABASE.0.$INSTANCE*" -ctime +$BACKUP_DAYS | wc -l)
-        done
 
         [ $SILENT -eq 0 ] && echo "Contando backups remotos"
         echo "Contando backups remotos" >> $LOGS
