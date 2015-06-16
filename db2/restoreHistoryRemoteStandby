@@ -42,6 +42,6 @@ TIMESTAMP=$(db2 -x "select max(START_TIME) from SYSIBMADM.DB_HISTORY where OPERA
 [ $SILENT -eq 0 ] && echo "Fecha: $TIMESTAMP"
 db2 connect reset > /dev/null
 
-ssh db2-2 ${REMOTE_DIR}/restoreStandBy $TIMESTAMP --history --silent
+ssh db2-2 ${REMOTE_DIR}/db2/restoreStandBy $TIMESTAMP --history --silent
 
 

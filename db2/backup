@@ -17,7 +17,7 @@ SCRIPTS_DIRECTORY=/home/db2inst1/scripts
 INSTANCE_DIRECTORY=/home/db2inst1/sqllib
 
 # Nombre o IP de la maquina remota.
-REMOTE_SERVER=db2-hadr-2
+REMOTE_SERVER=db2-2
 
 # Nombre de la base de datos
 DATABASE=WFSCPD
