@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# Runs statistics on all tables and indexes with a schema different from SYS.
+# The command receives the name of the database to connect to.
+
+FILE=/tmp/runstats
+DATAVASE=$1
+
+db2 connect to $1 > /dev/null
+
+db2 -x "select 'runstats on table ' || trim(tabschema) || '.' || trim(tabname) || ' for indexes all;' from syscat.tables where tabschema not like 'SYS%' and type = 'T' order by card desc" > ${FILE}
+
+db2 -tvf ${FILE}
+
+rm ${FILE}
+
+
